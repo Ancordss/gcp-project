@@ -44,8 +44,8 @@ steps:
       - 'deployment/backend'
       - 'backend=us-east1-docker.pkg.dev/$PROJECT_ID/flask-demo-app1/flask-demo-app1:latest'
     env:
-      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
-      - 'CLOUDSDK_CONTAINER_CLUSTER=my-cluster'
+      - 'CLOUDSDK_COMPUTE_ZONE=europe-west1'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=elaniin-interview-dev'
 
 images:
   - 'us-east1-docker.pkg.dev/$PROJECT_ID/flask-demo-app1/flask-demo-app1:latest'
