@@ -1,43 +1,33 @@
-# cloudbuild.yaml
-
 logsBucket: "gs://logs-entrevista"
 
 steps:
-
-  - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'sh'
-    args: ['-c', 'echo "Directorio actual:"; pwd; echo "Archivos en el directorio:"; ls -la']
-
-
-  - name: 'gcr.io/cloud-builders/docker'
+  - id: lint python
+    name: 'python:3.10-alpine'
     dir: 'nginx-flask-mongo/flask'
     entrypoint: 'sh'
-    args: ['-c', 'echo "Directorio actual:"; pwd; echo "Archivos en el directorio:"; ls -la']
+    args: [
+      '-c', 
+      'pip install flake8 && flake8 .'
+    ]
 
-  # 1. Navegar a la carpeta del servicio y construir la imagen de Docker
-  # - name: 'gcr.io/cloud-builders/docker'
-  #   dir: 'nginx-flask-mongo/flask'
-  #   args: [
-  #     'build', '-t', 'us-east1-docker.pkg.dev/entrevista123/flask-demo-app1/flask-demo-app1:latest', '.'
-  #   ]
-
-  - name: 'gcr.io/cloud-builders/docker'
+  - id: build docker image
+    name: 'gcr.io/cloud-builders/docker'
     dir: 'nginx-flask-mongo/flask'
     entrypoint: 'bash'
     args: [ '-c', 'docker build --tag=us-east1-docker.pkg.dev/entrevista123/flask-demo-app1/flask-demo-app1:latest .' ]
+    waitFor: ['lint python']  # Este paso depende del paso de linting
 
-  - id: 'build db'
+  - id: push docker image
     name: 'gcr.io/cloud-builders/docker'
     dir: 'nginx-flask-mongo/flask'
-
-  # 2. Subir la imagen de Docker a Artifact Registry
-  - name: 'gcr.io/cloud-builders/docker'
     args: [
       'push', 'us-east1-docker.pkg.dev/$PROJECT_ID/flask-demo-app1/flask-demo-app1:latest'
     ]
+    waitFor: ['build docker image']  # Este paso depende del paso de construcción de imagen
 
-  # 3. Actualizar el despliegue en GKE solo para service1
-  - name: 'gcr.io/cloud-builders/kubectl'
+  - id: update kubernetes deployment
+    dir: 'nginx-flask-mongo/flask'
+    name: 'gcr.io/cloud-builders/kubectl'
     args:
       - 'set'
       - 'image'
@@ -46,6 +36,19 @@ steps:
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=europe-west1'
       - 'CLOUDSDK_CONTAINER_CLUSTER=elaniin-interview-dev'
+    waitFor: ['push docker image']  # Este paso depende del paso de subir la imagen
+
+  - id: rollout restart
+    dir: 'nginx-flask-mongo/flask'
+    name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - 'rollout'
+      - 'restart'
+      - 'deployment/backend'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=europe-west1'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=elaniin-interview-dev'
+    waitFor: ['update kubernetes deployment']  # Este paso depende del paso de actualización del despliegue
 
 images:
   - 'us-east1-docker.pkg.dev/$PROJECT_ID/flask-demo-app1/flask-demo-app1:latest'
