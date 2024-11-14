@@ -3,6 +3,13 @@
 logsBucket: "gs://logs-entrevista"
 
 steps:
+
+  - name: 'gcr.io/cloud-builders/bash'
+    args: ['-c', 'echo "Directorio actual:"; pwd; echo "Archivos en el directorio:"; ls -la']
+
+  - name: 'gcr.io/cloud-builders/bash'
+    dir: 'nginx-flask-mongo/flask'
+    args: ['-c', 'echo "Directorio actual:"; pwd; echo "Archivos en el directorio:"; ls -la']
   # 1. Navegar a la carpeta del servicio y construir la imagen de Docker
   - name: 'gcr.io/cloud-builders/docker'
     dir: 'nginx-flask-mongo/flask'
