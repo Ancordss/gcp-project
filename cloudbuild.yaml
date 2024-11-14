@@ -1,6 +1,6 @@
 # cloudbuild.yaml
 
-logsBucket: "gs://logs-entrevista"
+# logsBucket: "gs://logs-entrevista"
 
 steps:
   # 1. Navegar a la carpeta del servicio y construir la imagen de Docker
