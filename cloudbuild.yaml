@@ -15,11 +15,20 @@ steps:
     args: ['-c', 'echo "Directorio actual:"; pwd; echo "Archivos en el directorio:"; ls -la']
 
   # 1. Navegar a la carpeta del servicio y construir la imagen de Docker
+  # - name: 'gcr.io/cloud-builders/docker'
+  #   dir: 'nginx-flask-mongo/flask'
+  #   args: [
+  #     'build', '-t', 'us-east1-docker.pkg.dev/entrevista123/flask-demo-app1/flask-demo-app1:latest', '.'
+  #   ]
+
   - name: 'gcr.io/cloud-builders/docker'
     dir: 'nginx-flask-mongo/flask'
-    args: [
-      'build', '-t', 'us-east1-docker.pkg.dev/entrevista123/flask-demo-app1/flask-demo-app1:6e8528c802af80d62639ded4fb0a56aaaeb92928', '.'
-    ]
+    entrypoint: 'bash'
+    args: [ '-c', 'docker build --tag=us-east1-docker.pkg.dev/entrevista123/flask-demo-app1/flask-demo-app1:latest .' ]
+
+  - id: 'build db'
+    name: 'gcr.io/cloud-builders/docker'
+    dir: 'nginx-flask-mongo/flask'
 
   # 2. Subir la imagen de Docker a Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
