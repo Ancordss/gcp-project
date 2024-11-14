@@ -1,5 +1,8 @@
 # syntax=docker/dockerfile:1.4
-FROM --platform=$BUILDPLATFORM python:3.10-alpine AS builder
+FROM python:3.10-alpine AS builder
+
+
+RUN  apk update
 
 WORKDIR /src
 COPY requirements.txt /src
@@ -11,6 +14,10 @@ COPY . .
 CMD ["python3", "server.py"]
 
 FROM builder as dev-envs
+
+
+
+RUN addgroup -S docker && adduser -S --shell /bin/bash --ingroup docker vscode
 
 # install Docker tools (cli, buildx, compose)
 COPY --from=gloursdocker/docker / /
