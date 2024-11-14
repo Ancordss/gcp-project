@@ -6,8 +6,7 @@ RUN  apk update
 
 WORKDIR /src
 COPY requirements.txt /src
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip3 install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
