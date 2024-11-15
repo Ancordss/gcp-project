@@ -29,13 +29,21 @@ provider "kubernetes" {
 resource "google_project_service" "monitoring_api" {
   project = var.project_id
   service = "monitoring.googleapis.com"
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "google_project_service" "logging_api" {
   project = var.project_id
   service = "logging.googleapis.com"
-  
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
+
 
 
 module "gke_auth" {
@@ -119,15 +127,13 @@ resource "null_resource" "get_kubeconfig" {
   depends_on = [module.gke]
 }
 
-output "kubeconfig_done" {
-  value = null_resource.get_kubeconfig.id
-}
 
-module "monitoring" {
-  source = "./../modules/monitoring"
 
-  depends_on = [null_resource.get_kubeconfig]
-}
+# module "monitoring" {
+#   source = "./../modules/monitoring"
+
+#   depends_on = [null_resource.get_kubeconfig]
+# }
 
 
 module "mongo" {
@@ -136,7 +142,7 @@ module "mongo" {
   replicas = 1
   image    = "mongo"
   port     = 27017
-  depends_on = [module.monitoring]
+  depends_on = [null_resource.get_kubeconfig]
   
 }
 
@@ -189,4 +195,16 @@ module "web" {
   }
 
   depends_on = [module.backend]
+}
+
+module "deploy_go_backend" {
+  source = "./../modules/go_backend_deployment"
+
+  depends_on = [null_resource.get_kubeconfig]
+}
+
+module "deploy_go_proxy" {
+  source = "./../modules/go_proxy_deployment"
+
+  depends_on = [module.deploy_go_backend]
 }

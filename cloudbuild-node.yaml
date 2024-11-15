@@ -1,0 +1,62 @@
+logsBucket: "gs://logs-entrevista"
+
+steps:
+  - id: check format node
+    name: 'node:16-alpine'
+    dir: 'nginx-nodejs-redis/web'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        npm install prettier
+        npm install 
+        npx prettier --check .
+
+  - id: build docker image
+    name: 'gcr.io/cloud-builders/docker'
+    dir: 'nginx-nodejs-redis/web'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - 'docker build --tag=us-east1-docker.pkg.dev/$PROJECT_ID/node-redis-app/app:latest .'
+    waitFor: ['run tests']  # Este paso depende de que las pruebas pasen
+
+  - id: push docker image
+    name: 'gcr.io/cloud-builders/docker'
+    dir: 'nginx-nodejs-redis/web'
+    args:
+      - 'push'
+      - 'us-east1-docker.pkg.dev/$PROJECT_ID/node-redis-app/app:latest'
+    waitFor: ['build docker image']  # Este paso depende del paso de construcción de la imagen
+
+  - id: update kubernetes deployment
+    dir: 'nginx-nodejs-redis/web'
+    name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - 'set'
+      - 'image'
+      - 'deployment/backend'
+      - 'backend=us-east1-docker.pkg.dev/$PROJECT_ID/node-redis-app/app:latest'
+      - '--namespace=node-redis'  # Namespace especificado
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=europe-west1'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=elaniin-interview-dev'
+    waitFor: ['push docker image']  # Este paso depende del paso de subida de la imagen
+
+  - id: rollout restart
+    dir: 'nginx-nodejs-redis/web'
+    name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - 'rollout'
+      - 'restart'
+      - 'deployment/backend'
+      - '--namespace=node-redis'  # Namespace especificado
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=europe-west1'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=elaniin-interview-dev'
+    waitFor: ['update kubernetes deployment']  # Este paso depende del paso de actualización del despliegue
+
+images:
+  - 'us-east1-docker.pkg.dev/$PROJECT_ID/node-redis-app/app:latest'
+
+timeout: '1200s'

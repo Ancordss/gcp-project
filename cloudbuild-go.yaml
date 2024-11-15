@@ -1,0 +1,60 @@
+logsBucket: "gs://logs-entrevista"
+
+steps:
+  - id: check format go
+    name: 'golang:1.18'
+    dir: 'nginx-golang/backend'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        go fmt ./...
+
+  - id: build docker image
+    name: 'gcr.io/cloud-builders/docker'
+    dir: 'nginx-golang/backend'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - 'docker build -t us-east1-docker.pkg.dev/$PROJECT_ID/go-backend/app:latest .'
+    waitFor: ['check format go']
+
+  - id: push docker image
+    name: 'gcr.io/cloud-builders/docker'
+    dir: 'nginx-golang/backend'
+    args:
+      - 'push'
+      - 'us-east1-docker.pkg.dev/$PROJECT_ID/go-backend/app:latest'
+    waitFor: ['build docker image']
+
+  - id: update kubernetes deployment
+    dir: 'nginx-golang/backend'
+    name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - 'set'
+      - 'image'
+      - 'deployment/backend'
+      - 'backend=us-east1-docker.pkg.dev/$PROJECT_ID/go-backend/app:latest'
+      - '--namespace=app3'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=europe-west1'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=elaniin-interview-dev'
+    waitFor: ['push docker image']
+
+  - id: rollout restart
+    dir: 'nginx-golang/backend'
+    name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - 'rollout'
+      - 'restart'
+      - 'deployment/backend'
+      - '--namespace=app3'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=europe-west1'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=elaniin-interview-dev'
+    waitFor: ['update kubernetes deployment']
+
+images:
+  - 'us-east1-docker.pkg.dev/$PROJECT_ID/go-backend/app:latest'
+
+timeout: '1200s'
