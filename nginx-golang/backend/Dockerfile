@@ -8,28 +8,22 @@ ENV GOPATH /go
 ENV GOCACHE /go-build
 
 COPY go.mod go.sum ./
-RUN --mount=type=cache,target=/go/pkg/mod/cache \
-    go mod download
+RUN go mod download
 
+# Copiar todo el código fuente
 COPY . .
 
-RUN --mount=type=cache,target=/go/pkg/mod/cache \
-    --mount=type=cache,target=/go-build \
-    go build -o bin/backend main.go
+# Construir la aplicación
+RUN go build -o bin/backend main.go
 
 CMD ["/code/bin/backend"]
 
 FROM builder as dev-envs
 
-RUN <<EOF
-apk update
-apk add git
-EOF
+RUN apk update
 
-RUN <<EOF
-addgroup -S docker
-adduser -S --shell /bin/bash --ingroup docker vscode
-EOF
+RUN addgroup -S docker && adduser -S --shell /bin/bash --ingroup docker vscode
+
 
 # install Docker tools (cli, buildx, compose)
 COPY --from=gloursdocker/docker / /

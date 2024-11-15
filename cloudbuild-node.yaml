@@ -19,7 +19,7 @@ steps:
     args:
       - '-c'
       - 'docker build --tag=us-east1-docker.pkg.dev/$PROJECT_ID/node-redis-app/app:latest .'
-    waitFor: ['run tests']  # Este paso depende de que las pruebas pasen
+    waitFor: ['check format node']  # Este paso depende de que las pruebas pasen
 
   - id: push docker image
     name: 'gcr.io/cloud-builders/docker'
