@@ -49,7 +49,20 @@ steps:
     args:
       - 'rollout'
       - 'restart'
-      - 'deployment/backend'
+      - 'deployment/web1'
+      - '--namespace=node-redis'  # Namespace especificado
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=europe-west1'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=elaniin-interview-dev'
+    waitFor: ['update kubernetes deployment']  # Este paso depende del paso de actualización del despliegue
+
+  - id: rollout restart app2
+    dir: 'nginx-nodejs-redis/web'
+    name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - 'rollout'
+      - 'restart'
+      - 'deployment/web2'
       - '--namespace=node-redis'  # Namespace especificado
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=europe-west1'
