@@ -36,7 +36,7 @@ steps:
       - 'set'
       - 'image'
       - 'deployment/web1'
-      - 'backend=us-east1-docker.pkg.dev/$PROJECT_ID/node-redis-app/app:latest'
+      - 'web1=us-east1-docker.pkg.dev/$PROJECT_ID/node-redis-app/app:latest'
       - '--namespace=node-redis'  # Namespace especificado
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=europe-west1'
@@ -51,7 +51,7 @@ steps:
       - 'set'
       - 'image'
       - 'deployment/web2'
-      - 'backend=us-east1-docker.pkg.dev/$PROJECT_ID/node-redis-app/app:latest'
+      - 'web2=us-east1-docker.pkg.dev/$PROJECT_ID/node-redis-app/app:latest'
       - '--namespace=node-redis'  # Namespace especificado
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=europe-west1'
