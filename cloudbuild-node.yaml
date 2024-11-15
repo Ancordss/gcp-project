@@ -35,13 +35,29 @@ steps:
     args:
       - 'set'
       - 'image'
-      - 'deployment/backend'
+      - 'deployment/web1'
       - 'backend=us-east1-docker.pkg.dev/$PROJECT_ID/node-redis-app/app:latest'
       - '--namespace=node-redis'  # Namespace especificado
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=europe-west1'
       - 'CLOUDSDK_CONTAINER_CLUSTER=elaniin-interview-dev'
     waitFor: ['push docker image']  # Este paso depende del paso de subida de la imagen
+
+
+  - id: update kubernetes deployment web2
+    dir: 'nginx-nodejs-redis/web'
+    name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - 'set'
+      - 'image'
+      - 'deployment/web2'
+      - 'backend=us-east1-docker.pkg.dev/$PROJECT_ID/node-redis-app/app:latest'
+      - '--namespace=node-redis'  # Namespace especificado
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=europe-west1'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=elaniin-interview-dev'
+    waitFor: ['push docker image']  # Este paso depende del paso de subida de la imagen
+
 
   - id: rollout restart
     dir: 'nginx-nodejs-redis/web'
@@ -67,7 +83,7 @@ steps:
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=europe-west1'
       - 'CLOUDSDK_CONTAINER_CLUSTER=elaniin-interview-dev'
-    waitFor: ['update kubernetes deployment']  # Este paso depende del paso de actualización del despliegue
+    waitFor: ['update kubernetes deployment web2']  # Este paso depende del paso de actualización del despliegue
 
 images:
   - 'us-east1-docker.pkg.dev/$PROJECT_ID/node-redis-app/app:latest'
