@@ -113,7 +113,7 @@ module "gke" {
 resource "null_resource" "get_kubeconfig" {
   provisioner "local-exec" {
     command = <<EOT
-      gcloud container clusters get-credentials ${var.project_id}-dev --region=${var.region}
+      gcloud container clusters get-credentials ${var.cluster_name}-${var.env_name} --region=${var.region}
     EOT
   }
   depends_on = [module.gke]

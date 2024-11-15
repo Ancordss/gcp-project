@@ -5,3 +5,5 @@ kubeconfig-dev
 .terraform
 var.tfvars
 venv
+terraform.tfstate
+terraform.tfstate.backup

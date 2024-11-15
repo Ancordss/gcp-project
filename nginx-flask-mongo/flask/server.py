@@ -15,7 +15,7 @@ def todo():
         client.admin.command("ismaster")
     except:
         return "Server not available"
-    return "Hello from the MongoDB and gke client!\n"
+    return "Hello user from the MongoDB and gke client!\n"
 
 
 if __name__ == "__main__":
