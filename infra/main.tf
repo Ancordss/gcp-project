@@ -7,6 +7,37 @@ terraform {
   }
 }
 
+
+provider "helm" {
+  kubernetes {
+    config_path = "/home/ancordss/archives/elaniin/kubeconfig-dev" # Asegúrate de apuntar al archivo de configuración correcto
+    host                   = "https://${module.gke.endpoint}"
+    token                  = data.google_client_config.default.access_token
+    cluster_ca_certificate = base64decode(module.gke.ca_certificate)
+  }
+}
+
+
+
+provider "kubernetes" {
+  config_path = "/home/ancordss/archives/elaniin/kubeconfig-dev"
+  host                   = "https://${module.gke.endpoint}"
+  token                  = data.google_client_config.default.access_token
+  cluster_ca_certificate = base64decode(module.gke.ca_certificate)
+}
+
+resource "google_project_service" "monitoring_api" {
+  project = var.project_id
+  service = "monitoring.googleapis.com"
+}
+
+resource "google_project_service" "logging_api" {
+  project = var.project_id
+  service = "logging.googleapis.com"
+  
+}
+
+
 module "gke_auth" {
   source = "terraform-google-modules/kubernetes-engine/google//modules/auth"
   version = "24.1.0"
@@ -14,6 +45,7 @@ module "gke_auth" {
   project_id   = var.project_id
   location     = module.gke.location
   cluster_name = module.gke.name
+  
 }
 
 resource "local_file" "kubeconfig" {
@@ -51,11 +83,7 @@ module "gcp-network" {
 
 data "google_client_config" "default" {}
 
-provider "kubernetes" {
-  host                   = "https://${module.gke.endpoint}"
-  token                  = data.google_client_config.default.access_token
-  cluster_ca_certificate = base64decode(module.gke.ca_certificate)
-}
+
 
 module "gke" {
   source                 = "terraform-google-modules/kubernetes-engine/google//modules/private-cluster"
@@ -79,4 +107,86 @@ module "gke" {
       disk_size_gb              = 30
     },
   ]
+}
+
+
+resource "null_resource" "get_kubeconfig" {
+  provisioner "local-exec" {
+    command = <<EOT
+      gcloud container clusters get-credentials ${var.project_id}-dev --region=${var.region}
+    EOT
+  }
+  depends_on = [module.gke]
+}
+
+output "kubeconfig_done" {
+  value = null_resource.get_kubeconfig.id
+}
+
+module "monitoring" {
+  source = "./../modules/monitoring"
+
+  depends_on = [null_resource.get_kubeconfig]
+}
+
+
+module "mongo" {
+  source   = "./../modules/mongo_deployment"
+  name     = "mongo"
+  replicas = 1
+  image    = "mongo"
+  port     = 27017
+  depends_on = [module.monitoring]
+  
+}
+
+module "backend" {
+  source               = "./../modules/flask_backend_deployment"
+  name                 = "backend"
+  replicas             = 1
+  image                = "us-east1-docker.pkg.dev/entrevista123/flask-demo-app1/flask-demo-app1:latest"
+  port                 = 9091
+  flask_server_port    = "9091"
+  # cpu_requests         = "100m"
+  # cpu_limits           = "500m"
+  min_replicas         = 1
+  max_replicas         = 5
+  cpu_target_utilization = 70
+
+   backend_container_resources = {
+    requests = {
+      cpu    = "100m"
+      memory = "128Mi"
+    }
+    limits = {
+      cpu    = "500m"
+      memory = "512Mi"
+    }
+  }
+
+  depends_on = [module.mongo]
+}
+
+
+module "web" {
+  source               = "./../modules/nginx_front_deployment"
+  replicas             = 1
+  # cpu_requests         = "100m"
+  # cpu_limits           = "500m"
+  min_replicas         = 1
+  max_replicas         = 5
+  cpu_target_utilization = 70
+
+  container_resources = {
+    requests = {
+      cpu    = "100m"
+      memory = "128Mi"
+    }
+    limits = {
+      cpu    = "500m"
+      memory = "512Mi"
+    }
+  }
+
+  depends_on = [module.backend]
 }
